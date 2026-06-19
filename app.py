@@ -7,6 +7,7 @@ app.config['SECRET_KEY'] = 'u19-secure-military-grade'
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 rooms = {}
+sid_to_room = {}
 
 @app.route('/')
 def index():
@@ -18,17 +19,21 @@ def on_join(data):
     user_type = data['type']
     
     join_room(room)
+    sid_to_room[request.sid] = (room, user_type)
+    
     if room not in rooms:
         rooms[room] = {'sender': False, 'receiver': False}
         
     rooms[room][user_type] = True
     
+    room_active = rooms[room]['sender'] and rooms[room]['receiver']
+    
     emit('room_status', {
-        'status': 'active' if rooms[room]['sender'] and rooms[room]['receiver'] else 'waiting',
+        'status': 'active' if room_active else 'waiting',
         'room': room
     }, room=room)
     
-    emit('room_joined', {'room_active': True}, to=request.sid)
+    emit('room_joined', {'room_active': room_active}, to=request.sid)
 
 @socketio.on('ping_keepalive')
 def on_ping():
@@ -52,10 +57,18 @@ def handle_typing_progress(data):
 
 @socketio.on('disconnect')
 def test_disconnect():
-    for room, state in rooms.items():
-        if state['sender'] or state['receiver']:
-            # For strict privacy, we don't hold states long term. Just emit drops.
-            pass
+    if request.sid in sid_to_room:
+        room, user_type = sid_to_room.pop(request.sid)
+        if room in rooms:
+            rooms[room][user_type] = False
+            # Clean up empty rooms
+            if not rooms[room]['sender'] and not rooms[room]['receiver']:
+                rooms.pop(room, None)
+            else:
+                emit('room_status', {
+                    'status': 'waiting',
+                    'room': room
+                }, room=room)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 7860))
