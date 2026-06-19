@@ -1,0 +1,21 @@
+name: Sync Backend to Hugging Face Space
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+          
+      - name: Push Code to Private Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git remote add space https://AjinkyaPagare:$HF_TOKEN@huggingface.co/spaces/AjinkyaPagare/U19-Secure-Backend
+          git push --force space main
