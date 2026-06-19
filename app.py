@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'u19-secure-military-grade'
-socketio = SocketIO(app, cors_allowed_origins=["https://u19-app.netlify.app"], async_mode='eventlet')
+socketio = SocketIO(app, cors_allowed_origins=["https://ajinkyapagare.github.io"], async_mode='eventlet')
 
 rooms = {}
 
